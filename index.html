@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Easy Crush</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="game-header">
+    <div class="logo">Easy Crush</div>
+    <div class="wallet-ui">
+      <span>💰 1,200</span>
+      <button>Deposit</button>
+    </div>
+  </header>
+
+  <section class="result-history">
+    <button class="dropdown-btn">Last 8 Results ⬇</button>
+    <div class="dropdown-content">2.0x | 1.4x | 5.2x | 1.0x | 3.1x | 1.8x | 2.7x | 4.9x</div>
+  </section>
+
+  <div class="card-view">
+    <canvas id="planeCanvas"></canvas>
+    <div class="multiplier-display">1.00x</div>
+    <div class="speed-meter">🚀 Speed: 0.1</div>
+  </div>
+
+  <section class="bet-options">
+    <div class="bet-card">
+      <input type="number" placeholder="Enter amount" />
+      <button>Bet</button>
+    </div>
+    <div class="bet-card">
+      <button>₹10</button>
+      <button>₹50</button>
+      <button>₹100</button>
+    </div>
+  </section>
+
+  <div class="cashout-history">
+    <h3>Live Cashout History</h3>
+    <ul>
+      <li>👤 User1 — ₹1200 at 2.3x</li>
+      <li>👤 User2 — ₹700 at 1.5x</li>
+    </ul>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
