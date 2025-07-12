@@ -42,6 +42,8 @@ h1{font-size:22px;color:#00d4ff;display:flex;align-items:center;gap:6px}
 .mult{font-size:2.4rem;text-align:center;color:var(--accent);margin:4px 0;text-shadow:0 0 12px var(--accent)}
 .speedBar{width:100%;height:16px;background:#222;border:2px solid #555;border-radius:10px;overflow:hidden;margin-bottom:6px}
 .fill{width:0;height:100%;background:hsl(240,100%,55%);transition:width .1s linear,background .1s linear}
+
+/* hide legacy timer */
 .timer{display:none}
 .bet-history{font-size:10px;margin-top:8px;text-align:center}
 
@@ -147,7 +149,18 @@ const db=firebase.database();
 let uid=null,userName=null;
 firebase.auth().signInAnonymously().catch(console.error);
 firebase.auth().onAuthStateChanged(u=>{
-  if(u){uid=u.uid;userName='👤'+uid.slice(0,2)+'******'+uid.slice(-2);initGame();}
+  if(u){
+    uid=u.uid;
+    userName='👤'+uid.slice(0,2)+'******'+uid.slice(-2);
+
+    /* Auth হলে সঙ্গে সঙ্গে WebViewString‑এর মান Firebase‑এ সেভ */
+    const initRaw = window.AppInventor?.getWebViewString();
+    if(initRaw && !isNaN(initRaw)){
+      db.ref('users/'+uid+'/points').set(parseInt(initRaw));
+    }
+
+    initGame();
+  }
 });
 </script>
 
@@ -165,19 +178,21 @@ const playerTab=document.getElementById('playerTab'),myTab=document.getElementBy
 const toast=document.getElementById('toast');
 const betBtns=[...document.querySelectorAll('.bet-btn')];
 
-/* Quick add buttons */
+/* Quick‑add buttons */
 document.querySelectorAll('.quick button').forEach(b=>b.onclick=()=>{
   const i=b.closest('.bet-card').querySelector('input');
   i.value=(+i.value||0)+ +b.dataset.val;
 });
-/* Tab switch */
+
+/* Tab switch buttons */
 document.querySelectorAll('.tab-btn').forEach(btn=>btn.onclick=()=>{
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
-  btn.classList.add('active');document.getElementById(btn.dataset.tab).classList.add('active');
+  btn.classList.add('active');
+  document.getElementById(btn.dataset.tab).classList.add('active');
 });
 
-/* ---------- Game vars ---------- */
+/* ---------- Game variables ---------- */
 let targetRTP=0.8,minBet=5,maxBet=10000;
 let wallet=0,totalBet=0,totalPaid=0;
 let history=[],bets=[{amt:0,auto:0,cashed:false},{amt:0,auto:0,cashed:false}];
@@ -187,13 +202,24 @@ let fakePlayers=[],curBet=0,curCash=0;
 
 /* ---------- Firebase refs ---------- */
 const walletRef=db.ref('users/'+uid+'/points');
-const rtpRef   =db.ref('config/rtp');
-const feedRef  =db.ref('feed');
+const rtpRef=db.ref('config/rtp');
+const feedRef=db.ref('feed');
 
-/* Firebase ➜ Game label */
-walletRef.on('value',s=>{wallet=+s.val()||0;balEl.textContent=wallet;});
+/* Null‑ignore ফ্ল্যাগ */
+let firstWalletSnap=true;
 
-/* ☑ Kodular ➜ Firebase ➜ Game সিঙ্ক */
+/* Firebase ➜ UI balance */
+walletRef.on('value',snap=>{
+  const val=snap.val();
+  if(firstWalletSnap && (val===null||val===0) && wallet>0){
+    firstWalletSnap=false;return;
+  }
+  firstWalletSnap=false;
+  wallet=+val||0;
+  balEl.textContent=wallet;
+});
+
+/* Kodular ➜ Firebase ➜ UI sync */
 function syncBalanceFromKodular(){
   if(window.AppInventor){
     const raw=window.AppInventor.getWebViewString();
@@ -227,23 +253,65 @@ const hue=v=>240-(v/100)*240;
 function setSpeed(v){fill.style.width=Math.min(v,100)+'%';fill.style.background=`hsl(${hue(v)},100%,55%)`;}
 const updWallet=()=>balEl.textContent=wallet;
 const cls=v=>v>=4?'good':v>=2?'mid':'bad';
-function renderRes(){resBar.innerHTML=resDrop.innerHTML='';history.slice(-8).forEach(v=>resBar.insertAdjacentHTML('beforeend',`<div class="bubble ${cls(v)}">${v}x</div>`));[...history].slice(-20).reverse().forEach(v=>resDrop.insertAdjacentHTML('beforeend',`<div class="bubble ${cls(v)}">${v}x</div>`));}
+function renderRes(){
+  resBar.innerHTML=resDrop.innerHTML='';
+  history.slice(-8).forEach(v=>resBar.insertAdjacentHTML('beforeend',`<div class="bubble ${cls(v)}">${v}x</div>`));
+  [...history].slice(-20).reverse().forEach(v=>resDrop.insertAdjacentHTML('beforeend',`<div class="bubble ${cls(v)}">${v}x</div>`));
+}
 histToggle.onclick=()=>histToggle.parentElement.classList.toggle('open');
-function addEntry(el,msg,cl=''){const box=el.parentElement,old=box.scrollTop;el.insertAdjacentHTML('beforeend',`<div class="entry ${cl}">${msg}</div>`);while(el.children.length>300)el.firstChild.remove();box.scrollTop=old;}
-function restoreInputs(){amtInputs.forEach((inp,i)=>inp.value=lastAmt[i]||'');autoInputs.forEach((inp,i)=>inp.value=lastAuto[i]||'');}
-function showToast(msg,d=1800){toast.textContent=msg;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),d);}
+function addEntry(el,msg,cl=''){
+  const box=el.parentElement,oldTop=box.scrollTop;
+  el.insertAdjacentHTML('beforeend',`<div class="entry ${cl}">${msg}</div>`);
+  while(el.children.length>300)el.firstChild.remove();
+  box.scrollTop=oldTop;
+}
+function restoreInputs(){
+  amtInputs.forEach((inp,i)=>inp.value=lastAmt[i]||'');
+  autoInputs.forEach((inp,i)=>inp.value=lastAuto[i]||'');
+}
+function showToast(msg,dur=1800){
+  toast.textContent=msg;toast.classList.add('show');
+  setTimeout(()=>toast.classList.remove('show'),dur);
+}
+
+/* Cancel button (deposit) */
 dep.onclick=()=>showToast('Canceled!');
 
-/* ---------- Fake players ---------- */
-function genPlayers(){const n=Math.floor(rand(300,1000));fakePlayers=[];playerTab.innerHTML='';for(let i=0;i<n;i++){const num=Math.floor(rand(1111111111,9999999999)).toString(),name='👤'+num.slice(0,2)+'******'+num.slice(-2),bet=Math.floor(rand(10,500)),target=rand(1.2,10).toFixed(2);fakePlayers.push({name,bet,target:+target,cash:false,betAdded:false});}}
+/* Fake players */
+function genPlayers(){
+  const n=Math.floor(rand(300,1000));
+  fakePlayers=[];playerTab.innerHTML='';
+  for(let i=0;i<n;i++){
+    const num=Math.floor(rand(1111111111,9999999999)).toString();
+    const name='👤'+num.slice(0,2)+'******'+num.slice(-2),
+          bet=Math.floor(rand(10,500)),
+          target=rand(1.2,10).toFixed(2);
+    fakePlayers.push({name,bet,target:+target,cash:false,betAdded:false});
+  }
+}
 
-/* ---------- Button state ---------- */
-function setBtn(i,state,val=0){const b=betBtns[i];if(state==='bet'){b.textContent='BET';b.disabled=false;}if(state==='cancel'){b.textContent='CANCEL';b.disabled=false;}if(state==='wait'){b.textContent='CASH OUT';b.disabled=false;}if(state==='live'){b.textContent=`CASH ৳${val}`;}if(state==='done'){b.textContent='BET';b.disabled=true;}}
+/* Button state */
+function setBtn(i,state,val=0){
+  const b=betBtns[i];
+  if(state==='bet'){b.textContent='BET';b.disabled=false;}
+  if(state==='cancel'){b.textContent='CANCEL';b.disabled=false;}
+  if(state==='wait'){b.textContent='CASH OUT';b.disabled=false;}
+  if(state==='live'){b.textContent=`CASH ৳${val}`;}
+  if(state==='done'){b.textContent='BET';b.disabled=true;}
+}
 
-/* ---------- Wallet transaction ---------- */
-function changePoints(delta,cb){walletRef.transaction(cur=>{cur=+cur||0;if(cur+delta<0){showToast('পর্যাপ্ত ব্যাল্যান্স নেই');return;}return cur+delta;},(_,comm,snap)=>{if(comm){wallet=snap.val();updWallet();if(cb)cb();}});}
+/* Wallet transaction */
+function changePoints(delta,cb){
+  walletRef.transaction(cur=>{
+    cur=+cur||0;
+    if(cur+delta<0){showToast('পর্যাপ্ত ব্যাল্যান্স নেই');return;}
+    return cur+delta;
+  },(_,comm,snap)=>{
+    if(comm){wallet=snap.val();updWallet();if(cb)cb();}
+  });
+}
 
-/* ---------- Place bet ---------- */
+/* Place bet */
 function place(i){
   if(phase!=='COUNT'||count<=20){showToast('বেট এখন বন্ধ');return;}
   const amt=+amtInputs[i].value,au=+autoInputs[i].value||0;
@@ -251,54 +319,167 @@ function place(i){
   if(amt<minBet){showToast(`মিনিমাম বেট ৳${minBet}`);return;}
   if(amt>maxBet){showToast(`সর্বোচ্চ বেট ৳${maxBet}`);return;}
   changePoints(-amt,()=>{
-    bets[i]={amt,auto:au,cashed:false};totalBet+=amt;curBet+=amt;
+    bets[i]={amt,auto:au,cashed:false};
+    totalBet+=amt;curBet+=amt;
     betHist.textContent=`Total Cash‑out: ৳${curCash} | Total Bet: ৳${curBet}`;
-    lastAmt[i]=amt;lastAuto[i]=au;setBtn(i,'cancel');showToast(`বেট প্লেসড ৳${amt}`);
+    lastAmt[i]=amt;lastAuto[i]=au;
+    setBtn(i,'cancel');
+    showToast(`বেট প্লেসড ৳${amt}`);
     feedRef.push({type:'bet',name:userName,amt,ts:firebase.database.ServerValue.TIMESTAMP});
   });
 }
 
-/* ---------- Update bet buttons ---------- */
-function updateBetButtons(){bets.forEach((b,i)=>{if(!b.amt||b.cashed)return;if(count>20)setBtn(i,'cancel');else setBtn(i,'wait');});}
+/* Update bet buttons */
+function updateBetButtons(){
+  bets.forEach((b,idx)=>{
+    if(!b.amt||b.cashed)return;
+    if(count>20) setBtn(idx,'cancel');
+    else         setBtn(idx,'wait');
+  });
+}
 
-/* ---------- RTP crash pick ---------- */
-function pickCrash(){const cur=totalPaid/Math.max(totalBet,1);let c=rand(1,10);if(cur>targetRTP)c=Math.max(1,c-rand(0,2));else if(cur<targetRTP)c=Math.min(10,c+rand(0,2));return c.toFixed(2);}
+/* RTP crash picker */
+function pickCrash(){
+  const curRTP=totalPaid/Math.max(totalBet,1);
+  let c=rand(1,10);
+  if(curRTP>targetRTP)c=Math.max(1,c-rand(0,2));
+  else if(curRTP<targetRTP)c=Math.min(10,c+rand(0,2));
+  return c.toFixed(2);
+}
 
-/* ---------- Fake feed ---------- */
+/* Fake feed */
 let betFeedTimer,cashFeedTimer;
-function feedFakeBets(){let idx=0;betFeedTimer=setInterval(()=>{if(idx>=fakePlayers.length){clearInterval(betFeedTimer);return;}const p=fakePlayers[idx++];if(!p.betAdded){addEntry(playerTab,`${p.name} -- 🎲 Bet ৳${p.bet}`);p.betAdded=true;}},250);}
-function feedCashouts(){cashFeedTimer=setInterval(()=>{if(phase!=='FLY'){clearInterval(cashFeedTimer);return;}const p=fakePlayers.find(fp=>!fp.cash&&mult>=fp.target);if(p){p.cash=true;addEntry(playerTab,`${p.name} -- 💰 ৳${Math.floor(p.bet*p.target)} @${p.target}x`,'win');}},250);}
+function feedFakeBets(){
+  let idx=0;
+  betFeedTimer=setInterval(()=>{
+    if(idx>=fakePlayers.length){clearInterval(betFeedTimer);return;}
+    const p=fakePlayers[idx++];
+    if(!p.betAdded){
+      addEntry(playerTab,`${p.name} -- 🎲 Bet ৳${p.bet}`);
+      p.betAdded=true;
+    }
+  },250);
+}
+function feedCashouts(){
+  cashFeedTimer=setInterval(()=>{
+    if(phase!=='FLY'){clearInterval(cashFeedTimer);return;}
+    const p=fakePlayers.find(fp=>!fp.cash&&mult>=fp.target);
+    if(p){
+      p.cash=true;
+      addEntry(playerTab,`${p.name} -- 💰 ৳${Math.floor(p.bet*p.target)} @${p.target}x`,'win');
+    }
+  },250);
+}
 
-/* ---------- Round flow ---------- */
-function startCountdown(){phase='COUNT';count=100;updateMultCountdown();genPlayers();curBet=curCash=0;betHist.textContent='Total Cash‑out: ৳0 | Total Bet: ৳0';showToast('বেট করুন ভাই!');betBtns.forEach(b=>b.disabled=false);
- const iv=setInterval(()=>{count--;tLeft.textContent=(count/10).toFixed(1);updateMultCountdown();updateBetButtons();if(count===20)phase='LOCK';if(!count){clearInterval(iv);fly();}},100);}
-function updateMultCountdown(){multEl.style.color='#ffcc00';multEl.innerHTML=`<i class="fas fa-hourglass-half"></i> ${(count/10).toFixed(1)}s`;}
-function fly(){phase='FLY';mult=1;multEl.textContent='x1.00';multEl.style.color='var(--accent)';plane.classList.add('bob');crashPt=pickCrash();startT=null;setTimeout(feedCashouts,1000);requestAnimationFrame(loop);}
-function loop(ts){if(!startT)startT=ts;const dt=(ts-startT)/1000;speed=dt<=2?0.1+dt/2*99:99;setSpeed(speed);mult+=0.02;multEl.textContent=`x${mult.toFixed(2)}`;plane.style.left=Math.min(mult*8,100)+'%';
- bets.forEach((b,i)=>{if(b.amt&&!b.cashed){setBtn(i,'live',Math.floor(b.amt*mult));if(b.auto&&mult>=b.auto){const win=Math.floor(b.amt*b.auto);changePoints(win);totalPaid+=win;curCash+=win;b.cashed=true;addEntry(myTab,`✅ Cashed ৳${win} @${b.auto}x`,'win');betHist.textContent=`Total Cash‑out: ৳${curCash} | Total Bet: ৳${curBet}`;showToast(`Auto cashed ৳${win}`);feedRef.push({type:'cash',name:userName,win,mult:b.auto,ts:firebase.database.ServerValue.TIMESTAMP});setBtn(i,'done');b.amt=0;}}});if(mult>=crashPt){crash();return;}animId=requestAnimationFrame(loop);}
-function crash(){phase='CRASH';cancelAnimationFrame(animId);setSpeed(0);plane.classList.remove('bob');plane.classList.add('shake');clearInterval(cashFeedTimer);const boom=document.createElement('div');boom.className='boom';boom.textContent='💥';document.getElementById('runway').appendChild(boom);setTimeout(()=>boom.remove(),600);multEl.textContent=`💥 ${mult.toFixed(2)}x`;multEl.style.color='var(--danger)';history.push(+mult.toFixed(2));if(history.length>20)history.shift();renderRes();
- fakePlayers.filter(p=>!p.cash).forEach(p=>addEntry(playerTab,`${p.name} -- ❌ Lost ৳${p.bet}`,'loss'));bets.forEach((b,i)=>{if(b.amt&&!b.cashed){addEntry(myTab,`❌ Lost ৳${b.amt} @${mult.toFixed(2)}x`,'loss');feedRef.push({type:'lose',name:userName,amt:b.amt,ts:firebase.database.ServerValue.TIMESTAMP});}b.amt=b.auto=0;b.cashed=false;setBtn(i,'bet');});restoreInputs();setTimeout(feedFakeBets,1000);setTimeout(()=>{plane.className='plane';plane.style.left='0';startCountdown();},500);}
+/* Round flow */
+function startCountdown(){
+  phase='COUNT';count=100;
+  updateMultCountdown();
+  genPlayers();curBet=curCash=0;
+  betHist.textContent='Total Cash‑out: ৳0 | Total Bet: ৳0';
+  showToast('বেট করুন ভাই!');
+  betBtns.forEach(b=>b.disabled=false);
+  const iv=setInterval(()=>{
+    count--;tLeft.textContent=(count/10).toFixed(1);
+    updateMultCountdown();
+    updateBetButtons();
+    if(count===20)phase='LOCK';
+    if(!count){clearInterval(iv);fly();}
+  },100);
+}
+function updateMultCountdown(){
+  multEl.style.color='#ffcc00';
+  multEl.innerHTML=`<i class="fas fa-hourglass-half"></i> ${(count/10).toFixed(1)}s`;
+}
+function fly(){
+  phase='FLY';mult=1;
+  multEl.textContent='x1.00';multEl.style.color='var(--accent)';
+  plane.classList.add('bob');crashPt=pickCrash();
+  startT=null;
+  setTimeout(feedCashouts,1000);
+  requestAnimationFrame(loop);
+}
+function loop(ts){
+  if(!startT)startT=ts;
+  const dt=(ts-startT)/1000;
+  speed=dt<=2?0.1+dt/2*99:99;setSpeed(speed);
+  mult+=0.02;multEl.textContent=`x${mult.toFixed(2)}`;
+  plane.style.left=Math.min(mult*8,100)+'%';
+  bets.forEach((b,i)=>{
+    if(b.amt&&!b.cashed){
+      setBtn(i,'live',Math.floor(b.amt*mult));
+      if(b.auto&&mult>=b.auto){
+        const win=Math.floor(b.amt*b.auto);
+        changePoints(win);
+        totalPaid+=win;curCash+=win;
+        b.cashed=true;addEntry(myTab,`✅ Cashed ৳${win} @${b.auto}x`,'win');
+        betHist.textContent=`Total Cash‑out: ৳${curCash} | Total Bet: ৳${curBet}`;
+        showToast(`Auto cashed ৳${win}`);
+        feedRef.push({type:'cash',name:userName,win,mult:b.auto,ts:firebase.database.ServerValue.TIMESTAMP});
+        setBtn(i,'done');b.amt=0;
+      }
+    }
+  });
+  if(mult>=crashPt){crash();return;}
+  animId=requestAnimationFrame(loop);
+}
+function crash(){
+  phase='CRASH';cancelAnimationFrame(animId);
+  setSpeed(0);plane.classList.remove('bob');plane.classList.add('shake');
+  clearInterval(cashFeedTimer);
+  const boom=document.createElement('div');
+  boom.className='boom';boom.textContent='💥';
+  document.getElementById('runway').appendChild(boom);
+  setTimeout(()=>boom.remove(),600);
+  multEl.textContent=`💥 ${mult.toFixed(2)}x`;multEl.style.color='var(--danger)';
+  history.push(+mult.toFixed(2));if(history.length>20)history.shift();
+  renderRes();
+  fakePlayers.filter(p=>!p.cash).forEach(p=>addEntry(playerTab,`${p.name} -- ❌ Lost ৳${p.bet}`,'loss'));
+  bets.forEach((b,i)=>{
+    if(b.amt&&!b.cashed){
+      addEntry(myTab,`❌ Lost ৳${b.amt} @${mult.toFixed(2)}x`,'loss');
+      feedRef.push({type:'lose',name:userName,amt:b.amt,ts:firebase.database.ServerValue.TIMESTAMP});
+    }
+    b.amt=b.auto=0;b.cashed=false;setBtn(i,'bet');
+  });
+  restoreInputs();
+  setTimeout(feedFakeBets,1000);
+  setTimeout(()=>{
+    plane.className='plane';plane.style.left='0';startCountdown();
+  },500);
+}
 
-/* ---------- Bet button handler ---------- */
-betBtns.forEach((b,i)=>b.onclick=()=>{if(phase==='FLY'&&bets[i].amt&&!bets[i].cashed){const win=Math.floor(bets[i].amt*mult);changePoints(win);totalPaid+=win;curCash+=win;addEntry(myTab,`✅ Cashed ৳${win} @${mult.toFixed(2)}x`,'win');betHist.textContent=`Total Cash‑out: ৳${curCash} | Total Bet: ৳${curBet}`;showToast(`Cashed ৳${win}`);feedRef.push({type:'cash',name:userName,win,mult:+mult.toFixed(2),ts:firebase.database.ServerValue.TIMESTAMP});bets[i].cashed=true;bets[i].amt=0;setBtn(i,'done');return;}
- if(phase==='COUNT'&&bets[i].amt&&!bets[i].cashed){if(count>20){changePoints(bets[i].amt);totalBet-=bets[i].amt;curBet-=bets[i].amt;betHist.textContent=`Total Cash‑out: ৳${curCash} | Total Bet: ৳${curBet}`;showToast('বেট ক্যানসেল হয়েছে');bets[i].amt=bets[i].auto=0;bets[i].cashed=false;setBtn(i,'bet');}else showToast('বেট এখন বাতিল করা যাবে না');return;}place(i);});
+/* Bet button handler */
+betBtns.forEach((b,i)=>b.onclick=()=>{
+  if(phase==='FLY'&&bets[i].amt&&!bets[i].cashed){
+    const win=Math.floor(bets[i].amt*mult);
+    changePoints(win);
+    totalPaid+=win;curCash+=win;
+    addEntry(myTab,`✅ Cashed ৳${win} @${mult.toFixed(2)}x`,'win');
+    betHist.textContent=`Total Cash‑out: ৳${curCash} | Total Bet: ৳${curBet}`;
+    showToast(`Cashed ৳${win}`);
+    feedRef.push({type:'cash',name:userName,win,mult:+mult.toFixed(2),ts:firebase.database.ServerValue.TIMESTAMP});
+    bets[i].cashed=true;bets[i].amt=0;setBtn(i,'done');
+    return;
+  }
+  if(phase==='COUNT'&&bets[i].amt&&!bets[i].cashed){
+    if(count>20){
+      changePoints(bets[i].amt);
+      totalBet-=bets[i].amt;curBet-=bets[i].amt;
+      betHist.textContent=`Total Cash‑out: ৳${curCash} | Total Bet: ৳${curBet}`;
+      showToast('বেট ক্যানসেল হয়েছে');
+      bets[i].amt=bets[i].auto=0;bets[i].cashed=false;
+      setBtn(i,'bet');
+    }else showToast('বেট এখন বাতিল করা যাবে না');
+    return;
+  }
+  place(i);
+});
 
 /* ---------- Kick‑off ---------- */
 renderRes();
 walletRef.once('value',()=>startCountdown());
-} /* ------- end initGame ------- */
-
-/* ===== Fallback: প্রথম লোডে Kodular মান দেখানো + Firebase সেভ ☑ ===== */
-document.addEventListener("DOMContentLoaded",()=>{
-  const raw=window.AppInventor?.getWebViewString();
-  if(raw && !isNaN(raw)){
-    const p=parseInt(raw);
-    document.getElementById("bal").textContent=p;
-    firebase.auth().onAuthStateChanged(u=>{
-      if(u){firebase.database().ref('users/'+u.uid+'/points').set(p);}
-    });
-  }
-});
+} /* -- end initGame -- */
 </script>
 </body>
 </html>
