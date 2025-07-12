@@ -9,18 +9,19 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
 
 <style>
+/* ------------ Global styles ------------ */
 :root{--accent:#00ffcc;--danger:#ff4040;--bg:#1d2033}
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
 body{background:#0d0f1a;color:#fff;display:flex;flex-direction:column}
 
-/* header */
+/* ----- Header ----- */
 header{background:#1a1e2f;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #292c3f}
 h1{font-size:22px;color:#00d4ff;display:flex;align-items:center;gap:6px}
 .wallet{display:flex;align-items:center;gap:10px}
 .wallet span{background:#2d3149;padding:6px 12px;border-radius:8px;font-size:14px}
 .wallet button{background:#00d4ff;color:#000;border:none;padding:6px 10px;border-radius:8px;font-weight:600;cursor:pointer}
 
-/* result bar */
+/* ----- Result bar ----- */
 .result-wrap{position:relative;padding:8px 0}
 .history-icon{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:14px;cursor:pointer;color:#ccc}
 .result-bar{display:flex;gap:6px;justify-content:center;flex-direction:row-reverse}
@@ -29,7 +30,7 @@ h1{font-size:22px;color:#00d4ff;display:flex;align-items:center;gap:6px}
 .dropdown{margin-top:6px;display:none;flex-wrap:wrap;gap:6px;justify-content:center;max-height:110px;overflow:auto}
 .open .dropdown{display:flex}
 
-/* main card */
+/* ----- Main card ----- */
 .card{width:95vw;max-width:480px;margin:0 auto;background:var(--bg);padding:18px;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.4)}
 .runway{position:relative;width:100%;height:80px;border-radius:12px;overflow:hidden;margin-bottom:12px}
 .runway::before{content:"";position:absolute;inset:0;background:url('https://drive.google.com/uc?export=view&id=10oYzjF5-tJEY7rychqkg2rksF5n23XOz') center/200% 100% repeat-x;filter:brightness(.8);animation:bgmove 12s linear infinite}
@@ -42,12 +43,10 @@ h1{font-size:22px;color:#00d4ff;display:flex;align-items:center;gap:6px}
 .mult{font-size:2.4rem;text-align:center;color:var(--accent);margin:4px 0;text-shadow:0 0 12px var(--accent)}
 .speedBar{width:100%;height:16px;background:#222;border:2px solid #555;border-radius:10px;overflow:hidden;margin-bottom:6px}
 .fill{width:0;height:100%;background:hsl(240,100%,55%);transition:width .1s linear,background .1s linear}
-
-/* hide legacy timer */
 .timer{display:none}
 .bet-history{font-size:10px;margin-top:8px;text-align:center}
 
-/* bet zone */
+/* ----- Bet zone ----- */
 .bet-zone{margin:18px auto;width:95vw;max-width:480px;display:flex;gap:12px}
 .bet-card{background:#1a1a2a;padding:10px;border-radius:12px;flex:1 1 40%;display:flex;flex-direction:column;gap:6px;font-size:12px}
 .bet-card input{background:#243544;border:none;padding:6px;border-radius:6px;color:#fff;font-size:12px;width:100%}
@@ -56,7 +55,7 @@ h1{font-size:22px;color:#00d4ff;display:flex;align-items:center;gap:6px}
 .quick{display:flex;gap:4px}
 .quick button{flex:1;background:#333;font-size:11px;padding:4px;color:#fff;border:none;border-radius:5px}
 
-/* history tabs */
+/* ----- History tabs ----- */
 .history-tabs{width:95vw;max-width:480px;margin:0 auto 20px;background:#16202c;border-radius:12px;overflow:hidden}
 .tab-header{display:flex}
 .tab-btn{flex:1;background:#1f2b39;color:#aaa;font-size:12px;padding:8px 0;border:none;cursor:pointer}
@@ -67,7 +66,7 @@ h1{font-size:22px;color:#00d4ff;display:flex;align-items:center;gap:6px}
 .entry{display:flex;justify-content:space-between;margin-bottom:4px}
 .win{color:#00ff7b}.loss{color:#ff7373}
 
-/* toast */
+/* ----- Toast ----- */
 .toast{position:fixed;left:50%;bottom:48px;transform:translateX(-50%) translateY(40px);background:#0d121e;border:2px solid #00d4ff;border-radius:10px;padding:10px 18px;opacity:0;pointer-events:none;font-size:14px;font-weight:600;transition:opacity .35s,transform .35s}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
@@ -134,7 +133,17 @@ h1{font-size:22px;color:#00d4ff;display:flex;align-items:center;gap:6px}
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 
 <script>
-/* ---------- Firebase Init ---------- */
+/* ------------- 1) Kodular initial points ------------- */
+let initPoints=0;
+document.addEventListener("DOMContentLoaded",()=>{
+  const raw=window.AppInventor?.getWebViewString();
+  if(raw && !isNaN(raw)){
+    initPoints=parseInt(raw);
+    document.getElementById("bal").textContent=initPoints;
+  }
+});
+
+/* ------------- 2) Firebase init & auth ------------- */
 const firebaseConfig={
   apiKey:"AIzaSyDVaI_YjkGUrpzqZG6SqY6Y0VmO7SkK7ew",
   authDomain:"aviator-ultimate.firebaseapp.com",
@@ -145,29 +154,29 @@ const firebaseConfig={
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 
-/* ---------- Anonymous Auth ---------- */
 let uid=null,userName=null;
 firebase.auth().signInAnonymously().catch(console.error);
-firebase.auth().onAuthStateChanged(u=>{
-  if(u){
-    uid=u.uid;
-    userName='👤'+uid.slice(0,2)+'******'+uid.slice(-2);
-
-    /* Auth হলে সঙ্গে সঙ্গে WebViewString‑এর মান Firebase‑এ সেভ */
-    const initRaw = window.AppInventor?.getWebViewString();
-    if(initRaw && !isNaN(initRaw)){
-      db.ref('users/'+uid+'/points').set(parseInt(initRaw));
-    }
-
-    initGame();
+firebase.auth().onAuthStateChanged(async u=>{
+  if(!u) return;
+  uid=u.uid;
+  userName='👤'+uid.slice(0,2)+'******'+uid.slice(-2);
+  const walletRef=db.ref('users/'+uid+'/points');
+  let startWallet=0;
+  const snap=await walletRef.get();
+  if(snap.exists() && snap.val()>0){
+    startWallet=snap.val();
+  }else{
+    startWallet=initPoints;
+    if(startWallet>0) await walletRef.set(startWallet);
   }
+  initGame(startWallet,walletRef);
 });
 </script>
 
-<!-- ================= FULL GAME SCRIPT ================= -->
+<!-- ------------- 3) FULL GAME SCRIPT ------------- -->
 <script>
-function initGame(){
-/* ---------- Elements ---------- */
+function initGame(startWallet,walletRef){
+/* ---------- Element refs ---------- */
 const balEl=document.getElementById('bal'),dep=document.getElementById('dep');
 const resBar=document.getElementById('resBar'),resDrop=document.getElementById('resDrop'),histToggle=document.getElementById('histToggle');
 const plane=document.getElementById('plane'),fill=document.getElementById('fill'),multEl=document.getElementById('mult');
@@ -178,68 +187,56 @@ const playerTab=document.getElementById('playerTab'),myTab=document.getElementBy
 const toast=document.getElementById('toast');
 const betBtns=[...document.querySelectorAll('.bet-btn')];
 
-/* Quick‑add buttons */
+/* ---------- Quick‑add & tab switch ---------- */
 document.querySelectorAll('.quick button').forEach(b=>b.onclick=()=>{
   const i=b.closest('.bet-card').querySelector('input');
   i.value=(+i.value||0)+ +b.dataset.val;
 });
-
-/* Tab switch buttons */
 document.querySelectorAll('.tab-btn').forEach(btn=>btn.onclick=()=>{
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById(btn.dataset.tab).classList.add('active');
+  btn.classList.add('active');document.getElementById(btn.dataset.tab).classList.add('active');
 });
 
-/* ---------- Game variables ---------- */
+/* ---------- Game vars ---------- */
+let wallet=startWallet;
 let targetRTP=0.8,minBet=5,maxBet=10000;
-let wallet=0,totalBet=0,totalPaid=0;
+let totalBet=0,totalPaid=0;
 let history=[],bets=[{amt:0,auto:0,cashed:false},{amt:0,auto:0,cashed:false}];
 let lastAmt=[0,0],lastAuto=[0,0];
 let phase='IDLE',count=100,startT,crashPt,mult=1,speed=0,animId;
 let fakePlayers=[],curBet=0,curCash=0;
 
 /* ---------- Firebase refs ---------- */
-const walletRef=db.ref('users/'+uid+'/points');
 const rtpRef=db.ref('config/rtp');
 const feedRef=db.ref('feed');
 
-/* Null‑ignore ফ্ল্যাগ */
-let firstWalletSnap=true;
+/* ---------- UI init ---------- */
+balEl.textContent=wallet;
 
-/* Firebase ➜ UI balance */
-walletRef.on('value',snap=>{
-  const val=snap.val();
-  if(firstWalletSnap && (val===null||val===0) && wallet>0){
-    firstWalletSnap=false;return;
-  }
-  firstWalletSnap=false;
-  wallet=+val||0;
-  balEl.textContent=wallet;
+/* ---------- Real‑time wallet listener ---------- */
+walletRef.on('value',s=>{
+  const v=+s.val()||0;
+  wallet=v;balEl.textContent=v;
 });
 
-/* Kodular ➜ Firebase ➜ UI sync */
-function syncBalanceFromKodular(){
+/* ---------- Kodular sync (1 সেকেন্ড) ---------- */
+setInterval(()=>{
   if(window.AppInventor){
     const raw=window.AppInventor.getWebViewString();
     if(raw && !isNaN(raw)){
       const p=parseInt(raw);
       if(p!==wallet){
-        wallet=p;
-        balEl.textContent=p;
-        walletRef.set(p);
+        wallet=p;balEl.textContent=p;walletRef.set(p);
       }
     }
   }
-}
-syncBalanceFromKodular();
-setInterval(syncBalanceFromKodular,1000);
+},1000);
 
-/* RTP */
+/* ---------- RTP realtime ---------- */
 rtpRef.on('value',s=>{targetRTP=+s.val()||0.8;});
 
-/* Feed listener */
+/* ---------- Feed realtime ---------- */
 feedRef.limitToLast(50).on('child_added',snap=>{
   const e=snap.val();
   if(e?.type==='bet')  addEntry(playerTab,`${e.name} -- 🎲 Bet ৳${e.amt}`);
@@ -247,11 +244,10 @@ feedRef.limitToLast(50).on('child_added',snap=>{
   if(e?.type==='lose') addEntry(playerTab,`${e.name} -- ❌ Lost ৳${e.amt}`,'loss');
 });
 
-/* ---------- Helper functions ---------- */
+/* ---------- Helpers ---------- */
 const rand=(a,b)=>Math.random()*(b-a)+a;
 const hue=v=>240-(v/100)*240;
 function setSpeed(v){fill.style.width=Math.min(v,100)+'%';fill.style.background=`hsl(${hue(v)},100%,55%)`;}
-const updWallet=()=>balEl.textContent=wallet;
 const cls=v=>v>=4?'good':v>=2?'mid':'bad';
 function renderRes(){
   resBar.innerHTML=resDrop.innerHTML='';
@@ -259,38 +255,25 @@ function renderRes(){
   [...history].slice(-20).reverse().forEach(v=>resDrop.insertAdjacentHTML('beforeend',`<div class="bubble ${cls(v)}">${v}x</div>`));
 }
 histToggle.onclick=()=>histToggle.parentElement.classList.toggle('open');
-function addEntry(el,msg,cl=''){
-  const box=el.parentElement,oldTop=box.scrollTop;
-  el.insertAdjacentHTML('beforeend',`<div class="entry ${cl}">${msg}</div>`);
-  while(el.children.length>300)el.firstChild.remove();
-  box.scrollTop=oldTop;
-}
-function restoreInputs(){
-  amtInputs.forEach((inp,i)=>inp.value=lastAmt[i]||'');
-  autoInputs.forEach((inp,i)=>inp.value=lastAuto[i]||'');
-}
-function showToast(msg,dur=1800){
-  toast.textContent=msg;toast.classList.add('show');
-  setTimeout(()=>toast.classList.remove('show'),dur);
-}
-
-/* Cancel button (deposit) */
+function addEntry(el,msg,cl=''){const box=el.parentElement,old=box.scrollTop;el.insertAdjacentHTML('beforeend',`<div class="entry ${cl}">${msg}</div>`);while(el.children.length>300)el.firstChild.remove();box.scrollTop=old;}
+function restoreInputs(){amtInputs.forEach((inp,i)=>inp.value=lastAmt[i]||'');autoInputs.forEach((inp,i)=>inp.value=lastAuto[i]||'');}
+function showToast(msg,d=1800){toast.textContent=msg;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),d);}
 dep.onclick=()=>showToast('Canceled!');
 
-/* Fake players */
+/* ---------- Fake players ---------- */
 function genPlayers(){
   const n=Math.floor(rand(300,1000));
   fakePlayers=[];playerTab.innerHTML='';
   for(let i=0;i<n;i++){
     const num=Math.floor(rand(1111111111,9999999999)).toString();
-    const name='👤'+num.slice(0,2)+'******'+num.slice(-2),
-          bet=Math.floor(rand(10,500)),
-          target=rand(1.2,10).toFixed(2);
+    const name='👤'+num.slice(0,2)+'******'+num.slice(-2);
+    const bet=Math.floor(rand(10,500));
+    const target=rand(1.2,10).toFixed(2);
     fakePlayers.push({name,bet,target:+target,cash:false,betAdded:false});
   }
 }
 
-/* Button state */
+/* ---------- Bet button visuals ---------- */
 function setBtn(i,state,val=0){
   const b=betBtns[i];
   if(state==='bet'){b.textContent='BET';b.disabled=false;}
@@ -300,18 +283,18 @@ function setBtn(i,state,val=0){
   if(state==='done'){b.textContent='BET';b.disabled=true;}
 }
 
-/* Wallet transaction */
+/* ---------- Wallet transaction ---------- */
 function changePoints(delta,cb){
   walletRef.transaction(cur=>{
     cur=+cur||0;
     if(cur+delta<0){showToast('পর্যাপ্ত ব্যাল্যান্স নেই');return;}
     return cur+delta;
   },(_,comm,snap)=>{
-    if(comm){wallet=snap.val();updWallet();if(cb)cb();}
+    if(comm){wallet=snap.val();balEl.textContent=wallet;if(cb)cb();}
   });
 }
 
-/* Place bet */
+/* ---------- Place bet ---------- */
 function place(i){
   if(phase!=='COUNT'||count<=20){showToast('বেট এখন বন্ধ');return;}
   const amt=+amtInputs[i].value,au=+autoInputs[i].value||0;
@@ -319,26 +302,17 @@ function place(i){
   if(amt<minBet){showToast(`মিনিমাম বেট ৳${minBet}`);return;}
   if(amt>maxBet){showToast(`সর্বোচ্চ বেট ৳${maxBet}`);return;}
   changePoints(-amt,()=>{
-    bets[i]={amt,auto:au,cashed:false};
-    totalBet+=amt;curBet+=amt;
+    bets[i]={amt,auto:au,cashed:false};totalBet+=amt;curBet+=amt;
     betHist.textContent=`Total Cash‑out: ৳${curCash} | Total Bet: ৳${curBet}`;
-    lastAmt[i]=amt;lastAuto[i]=au;
-    setBtn(i,'cancel');
-    showToast(`বেট প্লেসড ৳${amt}`);
+    lastAmt[i]=amt;lastAuto[i]=au;setBtn(i,'cancel');showToast(`বেট প্লেসড ৳${amt}`);
     feedRef.push({type:'bet',name:userName,amt,ts:firebase.database.ServerValue.TIMESTAMP});
   });
 }
 
-/* Update bet buttons */
-function updateBetButtons(){
-  bets.forEach((b,idx)=>{
-    if(!b.amt||b.cashed)return;
-    if(count>20) setBtn(idx,'cancel');
-    else         setBtn(idx,'wait');
-  });
-}
+/* ---------- Update bet buttons ---------- */
+function updateBetButtons(){bets.forEach((b,idx)=>{if(!b.amt||b.cashed)return;if(count>20)setBtn(idx,'cancel');else setBtn(idx,'wait');});}
 
-/* RTP crash picker */
+/* ---------- Crash picker ---------- */
 function pickCrash(){
   const curRTP=totalPaid/Math.max(totalBet,1);
   let c=rand(1,10);
@@ -347,44 +321,34 @@ function pickCrash(){
   return c.toFixed(2);
 }
 
-/* Fake feed */
+/* ---------- Fake feed timers ---------- */
 let betFeedTimer,cashFeedTimer;
 function feedFakeBets(){
   let idx=0;
   betFeedTimer=setInterval(()=>{
     if(idx>=fakePlayers.length){clearInterval(betFeedTimer);return;}
     const p=fakePlayers[idx++];
-    if(!p.betAdded){
-      addEntry(playerTab,`${p.name} -- 🎲 Bet ৳${p.bet}`);
-      p.betAdded=true;
-    }
+    if(!p.betAdded){addEntry(playerTab,`${p.name} -- 🎲 Bet ৳${p.bet}`);p.betAdded=true;}
   },250);
 }
 function feedCashouts(){
   cashFeedTimer=setInterval(()=>{
     if(phase!=='FLY'){clearInterval(cashFeedTimer);return;}
     const p=fakePlayers.find(fp=>!fp.cash&&mult>=fp.target);
-    if(p){
-      p.cash=true;
-      addEntry(playerTab,`${p.name} -- 💰 ৳${Math.floor(p.bet*p.target)} @${p.target}x`,'win');
-    }
+    if(p){p.cash=true;addEntry(playerTab,`${p.name} -- 💰 ৳${Math.floor(p.bet*p.target)} @${p.target}x`,'win');}
   },250);
 }
 
-/* Round flow */
+/* ---------- Round flow ---------- */
 function startCountdown(){
-  phase='COUNT';count=100;
-  updateMultCountdown();
-  genPlayers();curBet=curCash=0;
-  betHist.textContent='Total Cash‑out: ৳0 | Total Bet: ৳0';
-  showToast('বেট করুন ভাই!');
-  betBtns.forEach(b=>b.disabled=false);
+  phase='COUNT';count=100;updateMultCountdown();
+  genPlayers();curBet=curCash=0;betHist.textContent='Total Cash‑out: ৳0 | Total Bet: ৳0';
+  showToast('বেট করুন ভাই!');betBtns.forEach(b=>b.disabled=false);
   const iv=setInterval(()=>{
     count--;tLeft.textContent=(count/10).toFixed(1);
-    updateMultCountdown();
-    updateBetButtons();
+    updateMultCountdown();updateBetButtons();
     if(count===20)phase='LOCK';
-    if(!count){clearInterval(iv);fly();}
+    if(count===0){clearInterval(iv);fly();}
   },100);
 }
 function updateMultCountdown(){
@@ -392,27 +356,22 @@ function updateMultCountdown(){
   multEl.innerHTML=`<i class="fas fa-hourglass-half"></i> ${(count/10).toFixed(1)}s`;
 }
 function fly(){
-  phase='FLY';mult=1;
-  multEl.textContent='x1.00';multEl.style.color='var(--accent)';
-  plane.classList.add('bob');crashPt=pickCrash();
-  startT=null;
-  setTimeout(feedCashouts,1000);
-  requestAnimationFrame(loop);
+  phase='FLY';mult=1;multEl.textContent='x1.00';multEl.style.color='var(--accent)';
+  plane.classList.add('bob');crashPt=pickCrash();startT=null;
+  setTimeout(feedCashouts,1000);requestAnimationFrame(loop);
 }
 function loop(ts){
   if(!startT)startT=ts;
   const dt=(ts-startT)/1000;
   speed=dt<=2?0.1+dt/2*99:99;setSpeed(speed);
-  mult+=0.02;multEl.textContent=`x${mult.toFixed(2)}`;
-  plane.style.left=Math.min(mult*8,100)+'%';
+  mult+=0.02;multEl.textContent=`x${mult.toFixed(2)}`;plane.style.left=Math.min(mult*8,100)+'%';
   bets.forEach((b,i)=>{
     if(b.amt&&!b.cashed){
       setBtn(i,'live',Math.floor(b.amt*mult));
       if(b.auto&&mult>=b.auto){
         const win=Math.floor(b.amt*b.auto);
-        changePoints(win);
-        totalPaid+=win;curCash+=win;
-        b.cashed=true;addEntry(myTab,`✅ Cashed ৳${win} @${b.auto}x`,'win');
+        changePoints(win);totalPaid+=win;curCash+=win;b.cashed=true;
+        addEntry(myTab,`✅ Cashed ৳${win} @${b.auto}x`,'win');
         betHist.textContent=`Total Cash‑out: ৳${curCash} | Total Bet: ৳${curBet}`;
         showToast(`Auto cashed ৳${win}`);
         feedRef.push({type:'cash',name:userName,win,mult:b.auto,ts:firebase.database.ServerValue.TIMESTAMP});
@@ -425,15 +384,11 @@ function loop(ts){
 }
 function crash(){
   phase='CRASH';cancelAnimationFrame(animId);
-  setSpeed(0);plane.classList.remove('bob');plane.classList.add('shake');
-  clearInterval(cashFeedTimer);
-  const boom=document.createElement('div');
-  boom.className='boom';boom.textContent='💥';
-  document.getElementById('runway').appendChild(boom);
-  setTimeout(()=>boom.remove(),600);
+  setSpeed(0);plane.classList.remove('bob');plane.classList.add('shake');clearInterval(cashFeedTimer);
+  const boom=document.createElement('div');boom.className='boom';boom.textContent='💥';
+  document.getElementById('runway').appendChild(boom);setTimeout(()=>boom.remove(),600);
   multEl.textContent=`💥 ${mult.toFixed(2)}x`;multEl.style.color='var(--danger)';
-  history.push(+mult.toFixed(2));if(history.length>20)history.shift();
-  renderRes();
+  history.push(+mult.toFixed(2));if(history.length>20)history.shift();renderRes();
   fakePlayers.filter(p=>!p.cash).forEach(p=>addEntry(playerTab,`${p.name} -- ❌ Lost ৳${p.bet}`,'loss'));
   bets.forEach((b,i)=>{
     if(b.amt&&!b.cashed){
@@ -442,34 +397,29 @@ function crash(){
     }
     b.amt=b.auto=0;b.cashed=false;setBtn(i,'bet');
   });
-  restoreInputs();
-  setTimeout(feedFakeBets,1000);
+  restoreInputs();setTimeout(feedFakeBets,1000);
   setTimeout(()=>{
     plane.className='plane';plane.style.left='0';startCountdown();
   },500);
 }
 
-/* Bet button handler */
+/* ---------- Bet button click ---------- */
 betBtns.forEach((b,i)=>b.onclick=()=>{
   if(phase==='FLY'&&bets[i].amt&&!bets[i].cashed){
     const win=Math.floor(bets[i].amt*mult);
-    changePoints(win);
-    totalPaid+=win;curCash+=win;
+    changePoints(win);totalPaid+=win;curCash+=win;
     addEntry(myTab,`✅ Cashed ৳${win} @${mult.toFixed(2)}x`,'win');
     betHist.textContent=`Total Cash‑out: ৳${curCash} | Total Bet: ৳${curBet}`;
     showToast(`Cashed ৳${win}`);
     feedRef.push({type:'cash',name:userName,win,mult:+mult.toFixed(2),ts:firebase.database.ServerValue.TIMESTAMP});
-    bets[i].cashed=true;bets[i].amt=0;setBtn(i,'done');
-    return;
+    bets[i].cashed=true;bets[i].amt=0;setBtn(i,'done');return;
   }
   if(phase==='COUNT'&&bets[i].amt&&!bets[i].cashed){
     if(count>20){
-      changePoints(bets[i].amt);
-      totalBet-=bets[i].amt;curBet-=bets[i].amt;
+      changePoints(bets[i].amt);totalBet-=bets[i].amt;curBet-=bets[i].amt;
       betHist.textContent=`Total Cash‑out: ৳${curCash} | Total Bet: ৳${curBet}`;
       showToast('বেট ক্যানসেল হয়েছে');
-      bets[i].amt=bets[i].auto=0;bets[i].cashed=false;
-      setBtn(i,'bet');
+      bets[i].amt=bets[i].auto=0;bets[i].cashed=false;setBtn(i,'bet');
     }else showToast('বেট এখন বাতিল করা যাবে না');
     return;
   }
@@ -477,9 +427,8 @@ betBtns.forEach((b,i)=>b.onclick=()=>{
 });
 
 /* ---------- Kick‑off ---------- */
-renderRes();
-walletRef.once('value',()=>startCountdown());
-} /* -- end initGame -- */
+renderRes();startCountdown();
+} /* ------ end initGame ------ */
 </script>
 </body>
 </html>
