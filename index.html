@@ -2,50 +2,97 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Easy Crush</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>SuperWin – Crash Game</title>
+
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+
+  <!-- External stylesheet -->
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header class="game-header">
-    <div class="logo">Easy Crush</div>
-    <div class="wallet-ui">
-      <span>💰 1,200</span>
-      <button>Deposit</button>
+
+  <!-- ===== HEADER ===== -->
+  <header>
+    <h1><i class="fa-solid fa-plane-up"></i>&nbsp;SuperWin</h1>
+    <div class="wallet">
+      ৳<span id="bal">5000</span>
+      <!-- "Deposit" → "Cancel" -->
+      <button id="dep">Cancel</button>
     </div>
   </header>
 
-  <section class="result-history">
-    <button class="dropdown-btn">Last 8 Results ⬇</button>
-    <div class="dropdown-content">2.0x | 1.4x | 5.2x | 1.0x | 3.1x | 1.8x | 2.7x | 4.9x</div>
-  </section>
-
-  <div class="card-view">
-    <canvas id="planeCanvas"></canvas>
-    <div class="multiplier-display">1.00x</div>
-    <div class="speed-meter">🚀 Speed: 0.1</div>
+  <!-- ===== RESULT BAR ===== -->
+  <div class="result-wrap">
+    <div class="history-icon" id="histToggle"><i class="fas fa-history"></i></div>
+    <div class="result-bar" id="resBar"></div>
+    <div class="dropdown"  id="resDrop"></div>
   </div>
 
-  <section class="bet-options">
-    <div class="bet-card">
-      <input type="number" placeholder="Enter amount" />
-      <button>Bet</button>
+  <!-- ===== MAIN CARD ===== -->
+  <div class="card">
+    <div class="runway" id="runway">
+      <div class="plane" id="plane">✈️</div>
     </div>
-    <div class="bet-card">
-      <button>₹10</button>
-      <button>₹50</button>
-      <button>₹100</button>
-    </div>
-  </section>
 
-  <div class="cashout-history">
-    <h3>Live Cashout History</h3>
-    <ul>
-      <li>👤 User1 — ₹1200 at 2.3x</li>
-      <li>👤 User2 — ₹700 at 1.5x</li>
-    </ul>
+    <div class="mult" id="mult">x1.00</div>
+    <div class="speedBar"><div class="fill" id="fill"></div></div>
+
+    <!-- legacy timer (hidden by CSS) -->
+    <div class="timer" id="timer">
+      <i class="fas fa-hourglass-half"></i><span id="tLeft">10.0</span>s
+    </div>
+
+    <div class="bet-history" id="betHist">
+      Total Cash‑out: ৳0&nbsp;|&nbsp;Total Bet: ৳0
+    </div>
   </div>
 
+  <!-- ===== BET ZONE ===== -->
+  <div class="bet-zone">
+    <!-- Bet card 1 -->
+    <div class="bet-card">
+      Amount  <input id="amt1"  type="number" placeholder="৳">
+      Auto    <input id="auto1" type="number" placeholder="x">
+      <div class="quick">
+        <button data-val="10">+10</button>
+        <button data-val="50">+50</button>
+        <button data-val="100">+100</button>
+      </div>
+      <button class="bet-btn" data-idx="0">BET</button>
+    </div>
+
+    <!-- Bet card 2 -->
+    <div class="bet-card">
+      Amount  <input id="amt2"  type="number" placeholder="৳">
+      Auto    <input id="auto2" type="number" placeholder="x">
+      <div class="quick">
+        <button data-val="10">+10</button>
+        <button data-val="50">+50</button>
+        <button data-val="100">+100</button>
+      </div>
+      <button class="bet-btn" data-idx="1">BET</button>
+    </div>
+  </div>
+
+  <!-- ===== HISTORY TABS ===== -->
+  <div class="history-tabs">
+    <div class="tab-header">
+      <button class="tab-btn active" data-tab="playerTab">Player History</button>
+      <button class="tab-btn"          data-tab="myTab">My Bet History</button>
+    </div>
+    <div class="tab-body">
+      <div id="playerTab" class="tab-content active"></div>
+      <div id="myTab"     class="tab-content"></div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast">Place your bets!</div>
+
+  <!-- External script -->
   <script src="script.js"></script>
 </body>
 </html>
