@@ -1,414 +1,123 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>SuperWin – Crash Game</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SuperWin Crash Game</title>
 
-<!-- Icons -->
-<link rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 
-<!-- Firebase (compat CDN => GitHub Pages‑এ ESM ঝামেলা থাকবেনা) -->
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-
-<style>
-:root{--accent:#00ffcc;--danger:#ff4040;--bg:#1d2033}
-*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
-body{background:#0d0f1a;color:#fff;display:flex;flex-direction:column;align-items:center}
-
-/* header */
-header{background:#1a1e2f;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #292c3f;width:100%;max-width:480px}
-h1{font-size:22px;color:#00d4ff;display:flex;align-items:center;gap:6px}
-.wallet{display:flex;align-items:center;gap:10px}
-.wallet span{background:#2d3149;padding:6px 12px;border-radius:8px;font-size:14px}
-.wallet button{background:#00d4ff;color:#000;border:none;padding:6px 10px;border-radius:8px;font-weight:600;cursor:pointer}
-
-/* result bar */
-.result-wrap{position:relative;padding:8px 0;width:100%;max-width:480px}
-.history-icon{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:14px;cursor:pointer;color:#ccc}
-.result-bar{display:flex;gap:6px;justify-content:flex-end;flex-direction:row-reverse}
-.bubble{min-width:32px;padding:3px 6px;border-radius:6px;font-size:11px;font-weight:600;text-align:center}
-.good{background:#28a745}.mid{background:#ffc107}.bad{background:#dc3545}
-.dropdown{margin-top:6px;display:none;flex-wrap:wrap;gap:6px;justify-content:flex-end;flex-direction:row-reverse;max-height:110px;overflow:auto}
-.open .dropdown{display:flex}
-
-/* main card */
-.card{width:100%;max-width:480px;margin:0 auto;background:var(--bg);padding:18px;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.4)}
-.runway{position:relative;width:100%;height:80px;border-radius:12px;overflow:hidden;margin-bottom:12px}
-.runway::before{content:"";position:absolute;inset:0;background:url('https://drive.google.com/uc?export=view&id=10oYzjF5-tJEY7rychqkg2rksF5n23XOz') center/200% 100% repeat-x;filter:brightness(.8);animation:bgmove 12s linear infinite}
-@keyframes bgmove{to{background-position:-100% 0}}
-.plane{position:absolute;left:0;top:50%;transform:translateY(-50%);font-size:40px;filter:drop-shadow(0 0 6px var(--accent));transition:left .05s linear}
-.bob{animation:bob .8s ease-in-out infinite}@keyframes bob{0%,100%{transform:translateY(-50%) translateY(-3px)}50%{transform:translateY(-50%) translateY(4px)}}
-.shake{animation:shake .6s}@keyframes shake{10%,90%{transform:translateY(-50%) rotate(-4deg)}20%,80%{transform:translateY(-50%) rotate(4deg)}30%,70%{transform:translateY(-50%) rotate(-7deg)}40%,60%{transform:translateY(-50%) rotate(7deg)}50%{transform:translateY(-50%) rotate(0)}}
-.boom{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:3rem;filter:drop-shadow(0 0 12px var(--danger));opacity:0;animation:boom .6s forwards}
-@keyframes boom{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.3)}100%{opacity:0;transform:translate(-50%,-50%) scale(.2)}}
-.mult{font-size:2.4rem;text-align:center;color:var(--accent);margin:4px 0;text-shadow:0 0 12px var(--accent)}
-.speedBar{width:100%;height:16px;background:#222;border:2px solid #555;border-radius:10px;overflow:hidden;margin-bottom:6px}
-.fill{width:0;height:100%;background:hsl(240,100%,55%);transition:width .1s linear,background .1s linear}
-.timer{display:none}
-.bet-history{font-size:10px;margin-top:8px;text-align:center}
-
-/* bet zone */
-.bet-zone{margin:18px auto;width:100%;max-width:480px;display:flex;gap:12px}
-.bet-card{background:#1a1a2a;padding:10px;border-radius:12px;flex:1 1 40%;display:flex;flex-direction:column;gap:6px;font-size:12px}
-.bet-card input{background:#243544;border:none;padding:6px;border-radius:6px;color:#fff;font-size:12px;width:100%}
-.bet-btn{padding:6px;border:none;border-radius:6px;background:var(--accent);color:#000;font-weight:600;cursor:pointer}
-.bet-btn:disabled{opacity:.45;cursor:not-allowed}
-.quick{display:flex;gap:4px}
-.quick button{flex:1;background:#333;font-size:11px;padding:4px;color:#fff;border:none;border-radius:5px}
-
-/* history tabs */
-.history-tabs{width:100%;max-width:480px;margin:0 auto 20px;background:#16202c;border-radius:12px;overflow:hidden}
-.tab-header{display:flex}
-.tab-btn{flex:1;background:#1f2b39;color:#aaa;font-size:12px;padding:8px 0;border:none;cursor:pointer}
-.tab-btn.active{background:#00d4ff;color:#000;font-weight:600}
-.tab-body{background:#101822;max-height:150px;overflow-y:auto}
-.tab-content{display:none;padding:8px 10px;font-size:12px;line-height:16px}
-.tab-content.active{display:block}
-.entry{display:flex;justify-content:space-between;margin-bottom:4px}
-.win{color:#00ff7b}.loss{color:#ff7373}
-
-/* toast */
-.toast{position:fixed;left:50%;bottom:48px;transform:translateX(-50%) translateY(40px);background:#0d121e;border:2px solid #00d4ff;border-radius:10px;padding:10px 18px;opacity:0;pointer-events:none;font-size:14px;font-weight:600;transition:opacity .35s,transform .35s}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-
-@media(max-width:430px){.mult{font-size:1.9rem}.plane{font-size:34px}}
-</style>
+  <!-- Game CSS (your existing style here or link external file) -->
+  <style>
+    body {
+      margin: 0;
+      background: #0d0f1a;
+      color: white;
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+    }
+    #plane {
+      font-size: 50px;
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      left: 0%;
+      transition: left 0.05s linear;
+    }
+    .runway {
+      position: relative;
+      height: 100px;
+      background: #222;
+      overflow: hidden;
+    }
+    .boom {
+      font-size: 40px;
+      color: red;
+    }
+  </style>
 </head>
 <body>
 
-<!-- ===== UI ===== -->
-<header>
-  <h1><i class="fa-solid fa-plane-up"></i>&nbsp;SuperWin</h1>
-  <div class="wallet">৳<span id="bal">0</span><button id="dep">Cancel</button></div>
-</header>
-
-<div class="result-wrap">
-  <div class="history-icon" id="histToggle"><i class="fas fa-history"></i></div>
-  <div class="result-bar" id="resBar"></div>
-  <div class="dropdown" id="resDrop"></div>
-</div>
-
-<div class="card">
-  <div class="runway" id="runway"><div class="plane" id="plane">✈️</div></div>
-  <div class="mult" id="mult">x1.00</div>
-  <div class="speedBar"><div class="fill" id="fill"></div></div>
-  <div class="timer" id="timer"><i class="fas fa-hourglass-half"></i><span id="tLeft">10.0</span>s</div>
-  <div class="bet-history" id="betHist">Total Cash‑out: ৳0 | Total Bet: ৳0</div>
-</div>
-
-<div class="bet-zone">
-  <div class="bet-card">
-    Amount <input id="amt1" type="number" placeholder="৳">
-    Auto  <input id="auto1" type="number" placeholder="x">
-    <div class="quick"><button data-val="10">+10</button><button data-val="50">+50</button><button data-val="100">+100</button></div>
-    <button class="bet-btn" data-idx="0">BET</button>
+  <h1>✈️ SuperWin</h1>
+  <div class="runway">
+    <div id="plane">✈️</div>
   </div>
-  <div class="bet-card">
-    Amount <input id="amt2" type="number" placeholder="৳">
-    Auto  <input id="auto2" type="number" placeholder="x">
-    <div class="quick"><button data-val="10">+10</button><button data-val="50">+50</button><button data-val="100">+100</button></div>
-    <button class="bet-btn" data-idx="1">BET</button>
-  </div>
-</div>
+  <h2 id="mult">x1.00</h2>
+  <p id="status">Initializing...</p>
 
-<div class="history-tabs">
-  <div class="tab-header">
-    <button class="tab-btn active" data-tab="playerTab">Player History</button>
-    <button class="tab-btn" data-tab="myTab">My Bet History</button>
-  </div>
-  <div class="tab-body">
-    <div id="playerTab" class="tab-content active"></div>
-    <div id="myTab" class="tab-content"></div>
-  </div>
-</div>
+  <script>
+    // ✅ Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyDVaI_YjkGUrpzqZG6SqY6Y0VmO7SkK7ew",
+      authDomain: "aviator-ultimate.firebaseapp.com",
+      databaseURL: "https://aviator-ultimate-default-rtdb.firebaseio.com",
+      projectId: "aviator-ultimate",
+      storageBucket: "aviator-ultimate.appspot.com",
+      messagingSenderId: "1042964830702",
+      appId: "1:1042964830702:web:xxxxxx"
+    };
 
-<div class="toast" id="toast">Place your bets!</div>
+    // ✅ Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-<!-- ===== SCRIPT ===== -->
-<script>
-/* ------------ Firebase ------------ */
-const firebaseConfig = {
-  apiKey: "AIzaSyDVaI_YjkGUrpzqZG6SqY6Y0VmO7SkK7ew",
-  authDomain: "aviator-ultimate.firebaseapp.com",
-  databaseURL: "https://aviator-ultimate-default-rtdb.firebaseio.com",
-  projectId: "aviator-ultimate",
-  storageBucket: "aviator-ultimate.appspot.com",
-  messagingSenderId: "1042964830702",
-  appId: "1:1042964830702:android:775be0f28fa2e50a2316ff"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+    // ✅ Anonymous Login
+    firebase.auth().signInAnonymously()
+      .then(user => {
+        const uid = user.user.uid;
+        document.getElementById("status").textContent = "User signed in!";
+        startGame(uid); // Game starts only after auth success
+      })
+      .catch(error => {
+        console.error("Auth error", error);
+        document.getElementById("status").textContent = "Auth failed!";
+      });
 
-let uid='',wallet=0,targetRTP=0.8;
-firebase.auth().signInAnonymously().then(res=>{
-  uid=res.user.uid;
-  // load wallet
-  db.ref('users/'+uid+'/points').once('value').then(snap=>{
-    wallet=snap.exists()?snap.val():5000;
-    updWallet();
-    startCountdown();              // game start after balance load
-  });
-  // live RTP
-  db.ref('config/rtp').on('value',s=>{if(s.exists())targetRTP=parseFloat(s.val())||0.8;});
-});
+    // ✅ Game Logic
+    let mult = 1, crashPt = 0, plane = document.getElementById("plane"), multEl = document.getElementById("mult"), anim;
 
-/* ------------ Elements ------------ */
-const balEl=document.getElementById('bal'),dep=document.getElementById('dep');
-const resBar=document.getElementById('resBar'),resDrop=document.getElementById('resDrop'),histToggle=document.getElementById('histToggle');
-const plane=document.getElementById('plane'),fill=document.getElementById('fill'),multEl=document.getElementById('mult');
-const timer=document.getElementById('timer'),tLeft=document.getElementById('tLeft'),betHist=document.getElementById('betHist');
-const amtInputs=[document.getElementById('amt1'),document.getElementById('amt2')];
-const autoInputs=[document.getElementById('auto1'),document.getElementById('auto2')];
-const playerTab=document.getElementById('playerTab'),myTab=document.getElementById('myTab');
-const toast=document.getElementById('toast');
-const betBtns=[...document.querySelectorAll('.bet-btn')];
-
-/* ------------ Quick add buttons ------------ */
-document.querySelectorAll('.quick button').forEach(b=>b.onclick=()=>{
-  let inp=b.closest('.bet-card').querySelector('input');
-  inp.value=(+inp.value||0)+ +b.dataset.val;
-});
-
-/* ------------ Tab switch ------------ */
-document.querySelectorAll('.tab-btn').forEach(btn=>btn.onclick=()=>{
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
-  btn.classList.add('active');document.getElementById(btn.dataset.tab).classList.add('active');
-});
-
-/* ------------ Game vars ------------ */
-const minBet=5,maxBet=10000;
-let totalBet=0,totalPaid=0;
-let history=[],bets=[{amt:0,auto:0,cashed:false},{amt:0,auto:0,cashed:false}];
-let lastAmt=[0,0],lastAuto=[0,0];
-let phase='IDLE',count=100,startT,crashPt,mult=1,speed=0,animId;
-let fakePlayers=[],curBet=0,curCash=0;
-
-/* ------------ Helpers ------------ */
-const rand=(a,b)=>Math.random()*(b-a)+a;
-const hue=v=>240-(v/100)*240;
-function setSpeed(v){fill.style.width=Math.min(v,100)+'%';fill.style.background=`hsl(${hue(v)},100%,55%)`;}
-const updWallet=()=>{balEl.textContent=wallet; db.ref('users/'+uid+'/points').set(wallet);};
-const cls=v=>v>=4?'good':v>=2?'mid':'bad';
-function renderRes(){
-  resBar.innerHTML=resDrop.innerHTML='';
-  history.slice(-8).forEach(v=>resBar.insertAdjacentHTML('beforeend',`<div class="bubble ${cls(v)}">${v}x</div>`));
-  [...history].slice(-20).reverse().forEach(v=>resDrop.insertAdjacentHTML('beforeend',`<div class="bubble ${cls(v)}">${v}x</div>`));
-}
-histToggle.onclick=()=>histToggle.parentElement.classList.toggle('open');
-function addEntry(el,msg,cl=''){
-  const box=el.parentElement,oldTop=box.scrollTop;
-  el.insertAdjacentHTML('beforeend',`<div class="entry ${cl}">${msg}</div>`);
-  while(el.children.length>300)el.firstChild.remove();
-  box.scrollTop=oldTop;
-}
-function showToast(msg,dur=1800){toast.textContent=msg;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),dur);}
-
-/* ------------ Firebase history helpers ------------ */
-function logHistory(type,amount,multiplier=null){
-  db.ref('history/'+uid).push({type,amount,multiplier,time:Date.now()});
-}
-
-/* ------------ RTP based crash picker ------------ */
-function pickCrash(){
-  const cur=totalPaid/Math.max(totalBet,1);
-  let c=rand(1,10);
-  if(cur>targetRTP)c=Math.max(1,c-rand(0,2));
-  else if(cur<targetRTP)c=Math.min(10,c+rand(0,2));
-  return c.toFixed(2);
-}
-
-/* ------------ Fake players ------------ */
-function genPlayers(){
-  const n=Math.floor(rand(300,1000));
-  fakePlayers=[];playerTab.innerHTML='';
-  for(let i=0;i<n;i++){
-    const num=Math.floor(rand(1111111111,9999999999)).toString();
-    const name='👤'+num.slice(0,2)+'******'+num.slice(-2),
-          bet=Math.floor(rand(10,500)),
-          target=rand(1.2,10).toFixed(2);
-    fakePlayers.push({name,bet,target:+target,cash:false,betAdded:false});
-  }
-}
-
-/* ------------ Bet buttons state ------------ */
-function setBtn(i,state,val=0){
-  const b=betBtns[i];
-  if(state==='bet'){b.textContent='BET';b.disabled=false;}
-  if(state==='cancel'){b.textContent='CANCEL';b.disabled=false;}
-  if(state==='wait'){b.textContent='CASH OUT';b.disabled=false;}
-  if(state==='live'){b.textContent=`CASH ৳${val}`;}
-  if(state==='done'){b.textContent='BET';b.disabled=true;}
-}
-
-/* ------------ Place bet ------------ */
-function place(i){
-  if(phase!=='COUNT'||count<=20){showToast('বেট এখন বন্ধ');return;}
-  const amt=+amtInputs[i].value,au=+autoInputs[i].value||0;
-  if(!amt){showToast('এমন কোন বেট নেই');return;}
-  if(amt<minBet){showToast(`মিনিমাম বেট ৳${minBet}`);return;}
-  if(amt>maxBet){showToast(`সর্বোচ্চ বেট ৳${maxBet}`);return;}
-  if(wallet<amt){showToast('পর্যাপ্ত ব্যাল্যান্স নেই');return;}
-
-  wallet-=amt;updWallet();
-  bets[i]={amt,auto:au,cashed:false};
-  totalBet+=amt;curBet+=amt;
-  betHist.textContent=`Total Cash‑out: ৳${curCash} | Total Bet: ৳${curBet}`;
-  lastAmt[i]=amt;lastAuto[i]=au;
-  setBtn(i,'cancel');
-  showToast(`বেট প্লেসড ৳${amt}`);
-  logHistory('bet',amt);
-}
-
-/* ------------ Buttons update per tick ------------ */
-function updateBetButtons(){
-  bets.forEach((b,idx)=>{
-    if(!b.amt||b.cashed)return;
-    if(count>20)setBtn(idx,'cancel');
-    else setBtn(idx,'wait');
-  });
-}
-
-/* ------------ Feed fake bet/cashout ------------ */
-let betFeedTimer,cashFeedTimer;
-function feedFakeBets(){
-  let idx=0;
-  betFeedTimer=setInterval(()=>{
-    if(idx>=fakePlayers.length){clearInterval(betFeedTimer);return;}
-    const p=fakePlayers[idx++];
-    if(!p.betAdded){
-      addEntry(playerTab,`${p.name} — 🎲 Bet ৳${p.bet}`);
-      p.betAdded=true;
+    function pickCrashPoint() {
+      // (You can later fetch this from Firebase)
+      return (Math.random() * 5 + 1).toFixed(2);
     }
-  },250);
-}
-function feedCashouts(){
-  cashFeedTimer=setInterval(()=>{
-    if(phase!=='FLY'){clearInterval(cashFeedTimer);return;}
-    const p=fakePlayers.find(fp=>!fp.cash&&mult>=fp.target);
-    if(p){
-      p.cash=true;
-      addEntry(playerTab,`${p.name} — 💰 ৳${Math.floor(p.bet*p.target)} @${p.target}x`,'win');
+
+    function startGame(uid) {
+      crashPt = pickCrashPoint();
+      mult = 1;
+      plane.style.left = '0%';
+      multEl.textContent = `x${mult.toFixed(2)}`;
+      animate();
     }
-  },250);
-}
 
-/* ------------ Countdown / Round flow ------------ */
-function startCountdown(){
-  phase='COUNT';count=100;
-  updateMultCountdown();
-  genPlayers();curBet=curCash=0;
-  betHist.textContent='Total Cash‑out: ৳0 | Total Bet: ৳0';
-  showToast('বেট করুন ভাই!');
-  betBtns.forEach(b=>b.disabled=false);
+    function animate() {
+      mult += 0.02;
+      multEl.textContent = `x${mult.toFixed(2)}`;
+      plane.style.left = Math.min(mult * 8, 100) + '%';
 
-  const iv=setInterval(()=>{
-    count--;tLeft.textContent=(count/10).toFixed(1);
-    updateMultCountdown();updateBetButtons();
-    if(count===20)phase='LOCK';
-    if(!count){clearInterval(iv);fly();}
-  },100);
-}
-function updateMultCountdown(){
-  multEl.style.color='#ffcc00';
-  multEl.innerHTML=`<i class="fas fa-hourglass-half"></i> ${(count/10).toFixed(1)}s`;
-}
-
-/* ------------ Fly ------------ */
-function fly(){
-  phase='FLY';mult=1;
-  multEl.textContent='x1.00';multEl.style.color='var(--accent)';
-  plane.classList.add('bob');crashPt=pickCrash();
-  startT=null;
-  setTimeout(feedCashouts,1000);
-  requestAnimationFrame(loop);
-}
-
-/* ------------ Main loop ------------ */
-function loop(ts){
-  if(!startT)startT=ts;
-  const dt=(ts-startT)/1000;
-  speed=dt<=2?0.1+dt/2*99:99;setSpeed(speed);
-  mult+=0.02;multEl.textContent=`x${mult.toFixed(2)}`;
-  plane.style.left=Math.min(mult*8,100)+'%';
-
-  bets.forEach((b,i)=>{
-    if(b.amt&&!b.cashed){
-      setBtn(i,'live',Math.floor(b.amt*mult));
-      if(b.auto&&mult>=b.auto){
-        const win=Math.floor(b.amt*b.auto);
-        wallet+=win;totalPaid+=win;curCash+=win;
-        b.cashed=true;updWallet();
-        addEntry(myTab,`✅ Cashed ৳${win} @${b.auto}x`,'win');
-        betHist.textContent=`Total Cash‑out: ৳${curCash} | Total Bet: ৳${curBet}`;
-        showToast(`Auto cashed ৳${win}`);
-        logHistory('win',win,b.auto);
-        setBtn(i,'done');b.amt=0;
+      if (mult >= crashPt) {
+        document.getElementById("status").textContent = `💥 Crashed at x${mult.toFixed(2)}`;
+        showBoom();
+        cancelAnimationFrame(anim);
+        setTimeout(() => {
+          document.getElementById("status").textContent = "Restarting...";
+          startGame(); // restart
+        }, 2500);
+        return;
       }
+      anim = requestAnimationFrame(animate);
     }
-  });
-  if(mult>=crashPt){crash();return;}
-  animId=requestAnimationFrame(loop);
-}
 
-/* ------------ Crash ------------ */
-function crash(){
-  phase='CRASH';cancelAnimationFrame(animId);
-  setSpeed(0);plane.classList.remove('bob');plane.classList.add('shake');
-  clearInterval(cashFeedTimer);
-  const boom=document.createElement('div');boom.className='boom';boom.textContent='💥';
-  document.getElementById('runway').appendChild(boom);setTimeout(()=>boom.remove(),600);
-  multEl.textContent=`💥 ${mult.toFixed(2)}x`;multEl.style.color='var(--danger)';
-  history.push(+mult.toFixed(2));if(history.length>20)history.shift();
-  renderRes();db.ref('global/results').push(+mult.toFixed(2));
-
-  fakePlayers.filter(p=>!p.cash).forEach(p=>addEntry(playerTab,`${p.name} — ❌ Lost ৳${p.bet}`,'loss'));
-  bets.forEach((b,i)=>{
-    if(b.amt&&!b.cashed){
-      addEntry(myTab,`❌ Lost ৳${b.amt} @${mult.toFixed(2)}x`,'loss');
-      logHistory('loss',b.amt,mult.toFixed(2));
+    function showBoom() {
+      const boom = document.createElement("div");
+      boom.className = "boom";
+      boom.textContent = "💥";
+      document.querySelector(".runway").appendChild(boom);
+      setTimeout(() => boom.remove(), 1000);
     }
-    b.amt=b.auto=0;b.cashed=false;setBtn(i,'bet');
-  });
-  setTimeout(feedFakeBets,1000);
-  setTimeout(()=>{plane.className='plane';plane.style.left='0';startCountdown();},500);
-}
+  </script>
 
-/* ------------ Buttons click ------------ */
-betBtns.forEach((b,i)=>b.onclick=()=>{
-  if(phase==='FLY'&&bets[i].amt&&!bets[i].cashed){
-    const win=Math.floor(bets[i].amt*mult);
-    wallet+=win;totalPaid+=win;curCash+=win;updWallet();
-    addEntry(myTab,`✅ Cashed ৳${win} @${mult.toFixed(2)}x`,'win');
-    betHist.textContent=`Total Cash‑out: ৳${curCash} | Total Bet: ৳${curBet}`;
-    showToast(`Cashed ৳${win}`);
-    logHistory('win',win,mult.toFixed(2));
-    bets[i].cashed=true;bets[i].amt=0;setBtn(i,'done');
-    return;
-  }
-  if(phase==='COUNT'&&bets[i].amt&&!bets[i].cashed){
-    if(count>20){
-      wallet+=bets[i].amt;updWallet();
-      totalBet-=bets[i].amt;curBet-=bets[i].amt;
-      betHist.textContent=`Total Cash‑out: ৳${curCash} | Total Bet: ৳${curBet}`;
-      showToast('বেট ক্যানসেল হয়েছে');
-      logHistory('cancel',bets[i].amt);
-      bets[i].amt=bets[i].auto=0;bets[i].cashed=false;setBtn(i,'bet');
-    }else showToast('বেট এখন বাতিল করা যাবে না');
-    return;
-  }
-  place(i);
-});
-
-/* ------------ Deposit cancel demo ------------ */
-dep.onclick=()=>showToast('Canceled!');
-
-/* ------------ Init result bar blank ------------ */
-renderRes();
-</script>
 </body>
 </html>
