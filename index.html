@@ -465,6 +465,12 @@ renderRes();             // ফলাফল বারের প্রাথম�
 // wallet & RTP Firebase‑এর ভ্যালু লোড হলেই স্বয়ংক্রিয়ভাবে startCountdown() হবে
 walletRef.once('value',()=>startCountdown());
 }  // end initGame
+ 
+  document.addEventListener("DOMContentLoaded", () => {
+    const points = parseInt(window.AppInventor.getWebViewString() || "0");
+    document.getElementById("bal").textContent = points;
+  });
+
 </script>
 </body>
 </html>
